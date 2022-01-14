@@ -1,3 +1,4 @@
+const gameHeaderEl = document.getElementById('gameHeader');
 const gameContainerEl = document.getElementById('gameContainer');
 const squareEl = gameContainerEl.querySelector('.tile');
 
@@ -89,10 +90,21 @@ function initializeGame() {
   spawnRandomSquare();
 }
 
+function restartGame() {
+  flag = true;
+  board.forEach((row) =>
+    row.forEach((square) => {
+      if (square !== null) {
+        square.classList.add('shrink');
+        setTimeout(() => square.remove(), animationSpeed);
+      }
+    })
+  );
+}
+
 function createSquare(x, y, val) {
   const square = document.createElement('div');
   square.className = 'square shrink';
-  console.log(Math.log2(val));
   square.style.backgroundColor = colors[Math.log2(val) - 1];
   square.style.top = x * (squareSize + gap) + gap + 'px';
   square.style.left = y * (squareSize + gap) + gap + 'px';
@@ -145,27 +157,29 @@ document.addEventListener('keydown', (e) => {
   if (!flag) return;
   flag = false;
   setTimeout(() => (flag = true), animationSpeed);
+  let moved = false;
   switch (e.key) {
     case UP:
-      moveUp();
+      moved = moveUp();
       break;
     case RIGHT:
-      moveRight();
+      moved = moveRight();
       break;
     case DOWN:
-      moveDown();
+      moved = moveDown();
       break;
     case LEFT:
-      moveLeft();
+      moved = moveLeft();
       break;
     case ' ':
       spawnRandomSquare();
   }
 
-  spawnRandomSquare();
+  if (moved) spawnRandomSquare();
 });
 
 function moveUp() {
+  let moved = false;
   const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each column
@@ -173,11 +187,12 @@ function moveUp() {
     for (let j = idx; j < boardSize; j++) {
       const square = board[j][i];
       if (square !== null) {
-        board[j][i] = null;
         if (
           canFuseSquares(square, idx - 1, i) &&
           !fusedSquares.has(board[idx - 1][i]) // do not fuse same square twice
         ) {
+          moved = true;
+          board[j][i] = null;
           const fusedSquare = board[idx - 1][i];
           square.style.zIndex = -1;
           moveSquare(square, idx - 1, i);
@@ -187,16 +202,22 @@ function moveUp() {
             upgradeSquare(fusedSquare);
           }, animationSpeed); // remove square after 1 second
         } else {
-          moveSquare(square, idx, i);
-          board[idx][i] = square;
+          if (idx !== j) {
+            moved = true;
+            board[j][i] = null;
+            board[idx][i] = square;
+            moveSquare(square, idx, i);
+          }
           idx++;
         }
       }
     }
   }
+  return moved;
 }
 
 function moveLeft() {
+  let moved = false;
   const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each row
@@ -204,11 +225,12 @@ function moveLeft() {
     for (let j = idx; j < boardSize; j++) {
       const square = board[i][j];
       if (square !== null) {
-        board[i][j] = null;
         if (
           canFuseSquares(square, i, idx - 1) &&
           !fusedSquares.has(board[i][idx - 1]) // do not fuse same square twice
         ) {
+          moved = true;
+          board[i][j] = null;
           const fusedSquare = board[i][idx - 1];
           square.style.zIndex = -1;
           moveSquare(square, i, idx - 1);
@@ -218,16 +240,22 @@ function moveLeft() {
             upgradeSquare(fusedSquare);
           }, animationSpeed); // remove square after 1 second
         } else {
-          moveSquare(square, i, idx);
-          board[i][idx] = square;
+          if (idx !== j) {
+            moved = true;
+            board[i][j] = null;
+            board[i][idx] = square;
+            moveSquare(square, i, idx);
+          }
           idx++;
         }
       }
     }
   }
+  return moved;
 }
 
 function moveDown() {
+  let moved = false;
   const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each column
@@ -235,11 +263,12 @@ function moveDown() {
     for (let j = idx; j >= 0; j--) {
       const square = board[j][i];
       if (square !== null) {
-        board[j][i] = null;
         if (
           canFuseSquares(square, idx + 1, i) &&
           !fusedSquares.has(board[idx + 1][i]) // do not fuse same square twice
         ) {
+          moved = true;
+          board[j][i] = null;
           const fusedSquare = board[idx + 1][i];
           square.style.zIndex = -1;
           moveSquare(square, idx + 1, i);
@@ -249,16 +278,22 @@ function moveDown() {
             upgradeSquare(fusedSquare);
           }, animationSpeed); // remove square after 1 second
         } else {
-          moveSquare(square, idx, i);
-          board[idx][i] = square;
+          if (idx !== j) {
+            moved = true;
+            board[j][i] = null;
+            board[idx][i] = square;
+            moveSquare(square, idx, i);
+          }
           idx--;
         }
       }
     }
   }
+  return moved;
 }
 
 function moveRight() {
+  let moved = false;
   const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each row
@@ -266,11 +301,12 @@ function moveRight() {
     for (let j = idx; j >= 0; j--) {
       const square = board[i][j];
       if (square !== null) {
-        board[i][j] = null;
         if (
           canFuseSquares(square, i, idx + 1) &&
           !fusedSquares.has(board[i][idx + 1]) // do not fuse same square twice
         ) {
+          moved = true;
+          board[i][j] = null;
           const fusedSquare = board[i][idx + 1];
           square.style.zIndex = -1;
           moveSquare(square, i, idx + 1);
@@ -280,13 +316,20 @@ function moveRight() {
             upgradeSquare(fusedSquare);
           }, animationSpeed); // remove square after 1 second
         } else {
-          moveSquare(square, i, idx);
-          board[i][idx] = square;
+          if (idx !== j) {
+            moved = true;
+            board[i][j] = null;
+            board[i][idx] = square;
+            moveSquare(square, i, idx);
+          }
           idx--;
         }
       }
     }
   }
+  return moved;
 }
+
+gameHeaderEl.addEventListener('click', restartGame);
 
 initializeGame();
