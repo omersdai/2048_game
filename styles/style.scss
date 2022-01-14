@@ -62,4 +62,8 @@ body {
   .square.shrink {
     transform: scale(0%);
   }
+
+  .square.enlarge {
+    transform: scale(1.15);
+  }
 }

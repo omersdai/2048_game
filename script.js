@@ -137,6 +137,8 @@ function upgradeSquare(square) {
   const val = parseInt(square.innerText) * 2;
   square.innerText = val;
   square.style.backgroundColor = colors[Math.log2(val) - 1];
+  square.classList.add('enlarge');
+  setTimeout(() => square.classList.remove('enlarge'), animationSpeed);
 }
 
 document.addEventListener('keydown', (e) => {

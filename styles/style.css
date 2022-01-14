@@ -90,4 +90,9 @@ body {
   -webkit-transform: scale(0%);
           transform: scale(0%);
 }
+
+.game-container .square.enlarge {
+  -webkit-transform: scale(1.15);
+          transform: scale(1.15);
+}
 /*# sourceMappingURL=style.css.map */
