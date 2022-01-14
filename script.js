@@ -4,7 +4,9 @@ const squareEl = gameContainerEl.querySelector('.tile');
 const squareSize = 100; // px
 const gap = 15; // px
 const boardSize = 4;
+const animationSpeed = 100; // ms
 
+let flag; // do not receive input when false
 let board;
 
 const [UP, RIGHT, DOWN, LEFT] = [
@@ -14,9 +16,46 @@ const [UP, RIGHT, DOWN, LEFT] = [
   'ArrowLeft',
 ];
 
+const colors = [
+  'rgb(228, 176, 187)',
+  'rgb(230, 129, 151)',
+  'rgb(235, 103, 103)',
+  'rgb(228, 60, 60)',
+  'rgb(238, 192, 106)',
+  'rgb(255, 166, 0)',
+  'rgb(124, 235, 124)',
+  'rgb(65, 235, 65)',
+  'rgb(112, 214, 248)',
+  'rgb(0, 191, 255)',
+  'rgb(161, 68, 173)',
+];
+
+// Nice idea but doesn't look good in practice
+// const redMax = 255;
+// const greenMax = 123;
+// const blueMax = 0;
+// const squareCount = 11; // 2^11 = 2048
+// computeColors();
+// function computeColors() {
+//   // 255 -> 255-colorDiff -> ... -> colorMax
+//   const redDiff = parseInt((255 - redMax) / 11);
+//   const greenDiff = parseInt((255 - greenMax) / 11);
+//   const blueDiff = parseInt((255 - blueMax) / 11);
+//   let red = 255,
+//     green = 255,
+//     blue = 255;
+//   for (let i = 0; i < squareCount; i++) {
+//     red -= redDiff;
+//     green -= greenDiff;
+//     blue -= blueDiff;
+//     colors.push(`rgb(${red}, ${green}, ${blue})`);
+//   }
+// }
+
 let rows;
 
 function initializeGame() {
+  flag = true;
   board = [];
   for (let i = 0; i < boardSize; i++) {
     const arr = [];
@@ -31,27 +70,37 @@ function initializeGame() {
       gameRow.appendChild(tile);
     }
     board.push(arr);
-
     gameContainerEl.appendChild(gameRow);
   }
 
-  createSquare(0, 1, 31);
-  createSquare(1, 2, 31);
-  //   createSquare(3, 3, 2);
+  //   createSquare(0, 0, 2);
+  //   createSquare(0, 1, 4);
+  //   createSquare(0, 2, 8);
+  //   createSquare(0, 3, 16);
+  //   createSquare(1, 0, 32);
+  //   createSquare(1, 1, 64);
+  //   createSquare(1, 2, 128);
+  //   createSquare(1, 3, 256);
+  //   createSquare(2, 0, 512);
+  //   createSquare(2, 1, 1024);
+  //   createSquare(2, 2, 2048);
+
   spawnRandomSquare();
   spawnRandomSquare();
 }
 
 function createSquare(x, y, val) {
   const square = document.createElement('div');
-  square.className = 'square';
-  square.style.backgroundColor = 'pink';
+  square.className = 'square shrink';
+  console.log(Math.log2(val));
+  square.style.backgroundColor = colors[Math.log2(val) - 1];
   square.style.top = x * (squareSize + gap) + gap + 'px';
   square.style.left = y * (squareSize + gap) + gap + 'px';
   square.innerText = val;
 
   board[x][y] = square;
   gameContainerEl.appendChild(square);
+  setTimeout(() => square.classList.remove('shrink'), animationSpeed);
 }
 
 function spawnRandomSquare() {
@@ -74,8 +123,26 @@ function moveSquare(square, x, y) {
   square.style.left = y * (squareSize + gap) + gap + 'px';
 }
 
+function canFuseSquares(square, x, y) {
+  return (
+    0 <= x &&
+    x < boardSize &&
+    0 <= y &&
+    y < boardSize &&
+    square.innerText === board[x][y].innerText
+  );
+}
+
+function upgradeSquare(square) {
+  const val = parseInt(square.innerText) * 2;
+  square.innerText = val;
+  square.style.backgroundColor = colors[Math.log2(val) - 1];
+}
+
 document.addEventListener('keydown', (e) => {
-  console.log(e.key);
+  if (!flag) return;
+  flag = false;
+  setTimeout(() => (flag = true), animationSpeed);
   switch (e.key) {
     case UP:
       moveUp();
@@ -92,73 +159,129 @@ document.addEventListener('keydown', (e) => {
     case ' ':
       spawnRandomSquare();
   }
+
+  spawnRandomSquare();
 });
 
 function moveUp() {
+  const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each column
-    let emptyIdx = 0;
-    for (let j = emptyIdx; j < boardSize; j++) {
-      if (board[j][i] !== null) {
-        if (j !== emptyIdx) {
-          moveSquare(board[j][i], emptyIdx, i);
-          board[emptyIdx][i] = board[j][i];
-          board[j][i] = null;
+    let idx = 0; // the idx which is empty
+    for (let j = idx; j < boardSize; j++) {
+      const square = board[j][i];
+      if (square !== null) {
+        board[j][i] = null;
+        if (
+          canFuseSquares(square, idx - 1, i) &&
+          !fusedSquares.has(board[idx - 1][i]) // do not fuse same square twice
+        ) {
+          const fusedSquare = board[idx - 1][i];
+          square.style.zIndex = -1;
+          moveSquare(square, idx - 1, i);
+          fusedSquares.add(fusedSquare);
+          setTimeout(() => {
+            square.remove();
+            upgradeSquare(fusedSquare);
+          }, animationSpeed); // remove square after 1 second
+        } else {
+          moveSquare(square, idx, i);
+          board[idx][i] = square;
+          idx++;
         }
-        emptyIdx++;
       }
     }
   }
 }
 
 function moveLeft() {
+  const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each row
-    let emptyIdx = 0;
-    for (let j = emptyIdx; j < boardSize; j++) {
-      if (board[i][j] !== null) {
-        if (j !== emptyIdx) {
-          moveSquare(board[i][j], i, emptyIdx);
-          board[i][emptyIdx] = board[i][j];
-          board[i][j] = null;
+    let idx = 0; // the idx which is empty
+    for (let j = idx; j < boardSize; j++) {
+      const square = board[i][j];
+      if (square !== null) {
+        board[i][j] = null;
+        if (
+          canFuseSquares(square, i, idx - 1) &&
+          !fusedSquares.has(board[i][idx - 1]) // do not fuse same square twice
+        ) {
+          const fusedSquare = board[i][idx - 1];
+          square.style.zIndex = -1;
+          moveSquare(square, i, idx - 1);
+          fusedSquares.add(fusedSquare);
+          setTimeout(() => {
+            square.remove();
+            upgradeSquare(fusedSquare);
+          }, animationSpeed); // remove square after 1 second
+        } else {
+          moveSquare(square, i, idx);
+          board[i][idx] = square;
+          idx++;
         }
-
-        emptyIdx++;
       }
     }
   }
 }
 
 function moveDown() {
+  const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each column
-    let emptyIdx = boardSize - 1;
-    for (let j = emptyIdx; j >= 0; j--) {
-      if (board[j][i] !== null) {
-        if (j !== emptyIdx) {
-          moveSquare(board[j][i], emptyIdx, i);
-          board[emptyIdx][i] = board[j][i];
-          board[j][i] = null;
+    let idx = boardSize - 1; // the idx which is empty
+    for (let j = idx; j >= 0; j--) {
+      const square = board[j][i];
+      if (square !== null) {
+        board[j][i] = null;
+        if (
+          canFuseSquares(square, idx + 1, i) &&
+          !fusedSquares.has(board[idx + 1][i]) // do not fuse same square twice
+        ) {
+          const fusedSquare = board[idx + 1][i];
+          square.style.zIndex = -1;
+          moveSquare(square, idx + 1, i);
+          fusedSquares.add(fusedSquare);
+          setTimeout(() => {
+            square.remove();
+            upgradeSquare(fusedSquare);
+          }, animationSpeed); // remove square after 1 second
+        } else {
+          moveSquare(square, idx, i);
+          board[idx][i] = square;
+          idx--;
         }
-        emptyIdx--;
       }
     }
   }
 }
 
 function moveRight() {
+  const fusedSquares = new Set();
   for (let i = 0; i < boardSize; i++) {
     // each row
-    let emptyIdx = boardSize - 1;
-    for (let j = emptyIdx; j >= 0; j--) {
-      if (board[i][j] !== null) {
-        if (j !== emptyIdx) {
-          moveSquare(board[i][j], i, emptyIdx);
-          board[i][emptyIdx] = board[i][j];
-          board[i][j] = null;
+    let idx = boardSize - 1; // the idx which is empty
+    for (let j = idx; j >= 0; j--) {
+      const square = board[i][j];
+      if (square !== null) {
+        board[i][j] = null;
+        if (
+          canFuseSquares(square, i, idx + 1) &&
+          !fusedSquares.has(board[i][idx + 1]) // do not fuse same square twice
+        ) {
+          const fusedSquare = board[i][idx + 1];
+          square.style.zIndex = -1;
+          moveSquare(square, i, idx + 1);
+          fusedSquares.add(fusedSquare);
+          setTimeout(() => {
+            square.remove();
+            upgradeSquare(fusedSquare);
+          }, animationSpeed); // remove square after 1 second
+        } else {
+          moveSquare(square, i, idx);
+          board[i][idx] = square;
+          idx--;
         }
-
-        emptyIdx--;
       }
     }
   }

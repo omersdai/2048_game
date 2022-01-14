@@ -26,6 +26,7 @@ body {
 }
 
 .game-container {
+  z-index: -3;
   background-color: $boardColor;
   margin: 10px;
   padding: $gap;
@@ -40,9 +41,11 @@ body {
     gap: $gap;
   }
   .tile {
+    z-index: -2;
     height: $squareSize;
     width: $squareSize;
     background-color: lighten($boardColor, 20%);
+    border-radius: 5px;
   }
 
   .square {
@@ -50,7 +53,13 @@ body {
     @extend %flex-center;
     height: $squareSize;
     width: $squareSize;
-    background-color: $pink;
-    font-size: 50px;
+    background-color: rgb(0, 191, 255);
+    font-size: 40px;
+    transition: 0.1s linear;
+    border-radius: 5px;
+  }
+
+  .square.shrink {
+    transform: scale(0%);
   }
 }
