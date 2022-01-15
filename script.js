@@ -18,6 +18,7 @@ let flag; // do not receive input when false
 let gameStatus;
 let score;
 let bestScore;
+let endGameShown;
 let board;
 
 const [WON, LOST, CONTINUE] = ['won', 'lost', 'continue'];
@@ -47,6 +48,7 @@ function initializeGame() {
   gameStatus = CONTINUE;
   score = 0;
   bestScore = 0;
+  endGameShown = false;
   board = [];
   for (let i = 0; i < boardSize; i++) {
     const arr = [];
@@ -64,27 +66,20 @@ function initializeGame() {
     gameContainerEl.appendChild(gameRow);
   }
 
-  //   createSquare(0, 0, 2);
-  //   createSquare(0, 1, 4);
-  //   createSquare(0, 2, 8);
-  //   createSquare(0, 3, 16);
-  //   createSquare(1, 0, 32);
-  //   createSquare(1, 1, 64);
-  //   createSquare(1, 2, 128);
-  //   createSquare(1, 3, 256);
-  //   createSquare(2, 0, 512);
-  //   createSquare(2, 1, 1024);
-  //   createSquare(2, 2, 2048);
   if (!loadGame()) {
     spawnRandomSquare();
     spawnRandomSquare();
   }
+
   updateScore();
 }
 
 function restartGame() {
   popupEl.classList.add('hide');
   flag = true;
+  gameStatus = CONTINUE;
+  score = 0;
+  updateScore();
   for (let i = 0; i < boardSize; i++) {
     for (let j = 0; j < boardSize; j++) {
       removeSquare(i, j);
@@ -96,6 +91,8 @@ function restartGame() {
 }
 
 function showEndGame() {
+  if (endGameShown) return;
+  endGameShown = true;
   gameMessageEl.innerText = gameStatus === WON ? 'You won!' : 'Game Over!';
   popupEl.classList.remove('hide');
 }
@@ -185,7 +182,6 @@ function checkGameStatus() {
       } else hasSpace = true;
     }
   }
-
   return hasSpace || canFuse ? CONTINUE : LOST;
 }
 
@@ -217,8 +213,11 @@ document.addEventListener('keydown', (e) => {
 
   if (moved) {
     spawnRandomSquare();
-    gameStatus = checkGameStatus();
-    if (gameStatus === WON || gameStatus === LOST) showEndGame();
+    setTimeout(() => {
+      gameStatus = checkGameStatus();
+      if (gameStatus === WON || gameStatus === LOST) showEndGame();
+      console.log(gameStatus);
+    }, animationSpeed);
   }
 });
 
@@ -377,10 +376,8 @@ function moveRight() {
 function updateScore(val = 0) {
   score += val;
   scoreEl.innerText = score;
-  console.log(score, bestScore);
-  if (bestScore < score) {
-    bestScore = score;
-  }
+  if (bestScore < score) bestScore = score;
+
   bestScoreEl.innerText = bestScore;
 }
 
