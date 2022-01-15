@@ -47,7 +47,6 @@ function initializeGame() {
   gameStatus = CONTINUE;
   score = 0;
   bestScore = 0;
-  updateScore();
   board = [];
   for (let i = 0; i < boardSize; i++) {
     const arr = [];
@@ -76,22 +75,22 @@ function initializeGame() {
   //   createSquare(2, 0, 512);
   //   createSquare(2, 1, 1024);
   //   createSquare(2, 2, 2048);
-
-  spawnRandomSquare();
-  spawnRandomSquare();
+  if (!loadGame()) {
+    spawnRandomSquare();
+    spawnRandomSquare();
+  }
+  updateScore();
 }
 
 function restartGame() {
+  popupEl.classList.add('hide');
   flag = true;
-  board.forEach((row, x) =>
-    row.forEach((square, y) => {
-      if (square !== null) {
-        square.classList.add('shrink');
-        setTimeout(() => square.remove(), animationSpeed);
-        board[x][y] = null;
-      }
-    })
-  );
+  for (let i = 0; i < boardSize; i++) {
+    for (let j = 0; j < boardSize; j++) {
+      removeSquare(i, j);
+    }
+  }
+
   spawnRandomSquare();
   spawnRandomSquare();
 }
@@ -112,6 +111,15 @@ function createSquare(x, y, val) {
   board[x][y] = square;
   gameContainerEl.appendChild(square);
   setTimeout(() => square.classList.remove('shrink'), animationSpeed);
+}
+
+function removeSquare(x, y) {
+  const square = board[x][y];
+  if (square) {
+    square.classList.add('shrink');
+    setTimeout(() => square.remove(), animationSpeed);
+    board[x][y] = null;
+  }
 }
 
 function upgradeSquare(square) {
@@ -201,7 +209,10 @@ document.addEventListener('keydown', (e) => {
       moved = moveLeft();
       break;
     case ' ':
-      spawnRandomSquare();
+      // spawnRandomSquare();
+      // saveGame();
+      loadGame();
+      break;
   }
 
   if (moved) {
@@ -366,14 +377,48 @@ function moveRight() {
 function updateScore(val = 0) {
   score += val;
   scoreEl.innerText = score;
+  console.log(score, bestScore);
   if (bestScore < score) {
     bestScore = score;
-    bestScoreEl.innerText = bestScore;
   }
+  bestScoreEl.innerText = bestScore;
+}
+
+function saveGame() {
+  const gameState = {
+    gameStatus,
+    score,
+    bestScore,
+    board: board.map((row) =>
+      row.map((square) => (square === null ? null : square.innerText))
+    ),
+  };
+
+  localStorage.setItem('2048', JSON.stringify(gameState));
+}
+
+function loadGame() {
+  const gameState = JSON.parse(localStorage.getItem('2048'));
+  if (!gameState) return false;
+  gameStatus = gameState.gameStatus;
+  score = gameState.score;
+  bestScore = gameState.bestScore;
+  for (let i = 0; i < boardSize; i++) {
+    for (let j = 0; j < boardSize; j++) {
+      removeSquare(i, j);
+      const val = gameState.board[i][j];
+      if (val) createSquare(i, j, parseInt(val));
+    }
+  }
+
+  return true;
 }
 
 resetBtn.addEventListener('click', restartGame);
 closeBtn.addEventListener('click', () => popupEl.classList.add('hide'));
+window.onbeforeunload = function () {
+  saveGame();
+};
 
 function log(n, base) {
   return Math.round(Math.log(n) / Math.log(base));
