@@ -79,6 +79,7 @@ function restartGame() {
   flag = true;
   gameStatus = CONTINUE;
   score = 0;
+  endGameShown = false;
   updateScore();
   for (let i = 0; i < boardSize; i++) {
     for (let j = 0; j < boardSize; j++) {
