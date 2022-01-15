@@ -22,7 +22,49 @@ body {
   align-items: center;
   min-height: 100vh;
   width: 100vw;
+  overflow-x: hidden;
   background-color: steelblue;
+}
+
+.game-header {
+  width: 475px;
+  font-size: 15px;
+  padding: 10px 20px;
+  .top-header {
+    display: flex;
+    align-items: center;
+
+    h1 {
+      width: 100%;
+      font-size: 50px;
+      text-align: center;
+    }
+  }
+
+  .score-header {
+    display: flex;
+  }
+
+  .game-score {
+    @include set-background(rgb(0, 81, 255));
+    border-radius: 5px;
+    padding: 10px 20px;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .bot-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .reset-btn {
+    @extend %btn;
+    @include set-background($darkBlue);
+  }
 }
 
 .game-container {
@@ -65,5 +107,45 @@ body {
 
   .square.enlarge {
     transform: scale(1.15);
+  }
+}
+
+.how-to-play {
+  max-width: 475px;
+  text-align: center;
+  @include set-background(rgba($color: #000000, $alpha: 0.3));
+  padding: 10px 20px;
+  border-radius: 10px;
+}
+
+.popup {
+  @extend %absolute-center;
+  @include set-background($darkBlue);
+  @extend %flex-center;
+  flex-direction: column;
+  gap: 10px;
+  padding: 35px;
+  border-radius: 10px;
+
+  .reset-btn {
+    @extend %btn;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: transparent;
+    border: none;
+    color: rgb(255, 41, 41);
+    cursor: pointer;
+
+    &:active {
+      transform: scale(95%);
+    }
+
+    &:hover {
+      filter: brightness(0.95);
+    }
   }
 }

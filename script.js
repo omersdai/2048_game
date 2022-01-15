@@ -1,15 +1,26 @@
-const gameHeaderEl = document.getElementById('gameHeader');
+const scoreEl = document.getElementById('score');
+const bestScoreEl = document.getElementById('bestScore');
+const resetBtn = document.getElementById('resetBtn');
 const gameContainerEl = document.getElementById('gameContainer');
-const squareEl = gameContainerEl.querySelector('.tile');
 
+const popupEl = document.getElementById('popup');
+const gameMessageEl = document.getElementById('gameMessage');
+const closeBtn = document.getElementById('closeBtn');
+
+const base = 2;
+const goal = Math.pow(base, 11);
 const squareSize = 100; // px
 const gap = 15; // px
 const boardSize = 4;
 const animationSpeed = 100; // ms
 
 let flag; // do not receive input when false
+let gameStatus;
+let score;
+let bestScore;
 let board;
 
+const [WON, LOST, CONTINUE] = ['won', 'lost', 'continue'];
 const [UP, RIGHT, DOWN, LEFT] = [
   'ArrowUp',
   'ArrowRight',
@@ -31,32 +42,12 @@ const colors = [
   'rgb(161, 68, 173)',
 ];
 
-// Nice idea but doesn't look good in practice
-// const redMax = 255;
-// const greenMax = 123;
-// const blueMax = 0;
-// const squareCount = 11; // 2^11 = 2048
-// computeColors();
-// function computeColors() {
-//   // 255 -> 255-colorDiff -> ... -> colorMax
-//   const redDiff = parseInt((255 - redMax) / 11);
-//   const greenDiff = parseInt((255 - greenMax) / 11);
-//   const blueDiff = parseInt((255 - blueMax) / 11);
-//   let red = 255,
-//     green = 255,
-//     blue = 255;
-//   for (let i = 0; i < squareCount; i++) {
-//     red -= redDiff;
-//     green -= greenDiff;
-//     blue -= blueDiff;
-//     colors.push(`rgb(${red}, ${green}, ${blue})`);
-//   }
-// }
-
-let rows;
-
 function initializeGame() {
   flag = true;
+  gameStatus = CONTINUE;
+  score = 0;
+  bestScore = 0;
+  updateScore();
   board = [];
   for (let i = 0; i < boardSize; i++) {
     const arr = [];
@@ -92,20 +83,28 @@ function initializeGame() {
 
 function restartGame() {
   flag = true;
-  board.forEach((row) =>
-    row.forEach((square) => {
+  board.forEach((row, x) =>
+    row.forEach((square, y) => {
       if (square !== null) {
         square.classList.add('shrink');
         setTimeout(() => square.remove(), animationSpeed);
+        board[x][y] = null;
       }
     })
   );
+  spawnRandomSquare();
+  spawnRandomSquare();
+}
+
+function showEndGame() {
+  gameMessageEl.innerText = gameStatus === WON ? 'You won!' : 'Game Over!';
+  popupEl.classList.remove('hide');
 }
 
 function createSquare(x, y, val) {
   const square = document.createElement('div');
   square.className = 'square shrink';
-  square.style.backgroundColor = colors[Math.log2(val) - 1];
+  square.style.backgroundColor = colors[log(val, base) - 1];
   square.style.top = x * (squareSize + gap) + gap + 'px';
   square.style.left = y * (squareSize + gap) + gap + 'px';
   square.innerText = val;
@@ -113,6 +112,16 @@ function createSquare(x, y, val) {
   board[x][y] = square;
   gameContainerEl.appendChild(square);
   setTimeout(() => square.classList.remove('shrink'), animationSpeed);
+}
+
+function upgradeSquare(square) {
+  const val = parseInt(square.innerText) * base;
+  updateScore(val);
+
+  square.innerText = val;
+  square.style.backgroundColor = colors[log(val, base) - 1];
+  square.classList.add('enlarge');
+  setTimeout(() => square.classList.remove('enlarge'), animationSpeed);
 }
 
 function spawnRandomSquare() {
@@ -126,7 +135,7 @@ function spawnRandomSquare() {
   const idx = Math.floor(Math.random() * emptySquares.length);
   const x = emptySquares[idx][0];
   const y = emptySquares[idx][1];
-  const val = Math.random() < 0.9 ? 2 : 4;
+  const val = Math.random() < 0.9 ? base : base * base;
   createSquare(x, y, val);
 }
 
@@ -141,19 +150,39 @@ function canFuseSquares(square, x, y) {
     x < boardSize &&
     0 <= y &&
     y < boardSize &&
+    board[x][y] !== null &&
     square.innerText === board[x][y].innerText
   );
 }
 
-function upgradeSquare(square) {
-  const val = parseInt(square.innerText) * 2;
-  square.innerText = val;
-  square.style.backgroundColor = colors[Math.log2(val) - 1];
-  square.classList.add('enlarge');
-  setTimeout(() => square.classList.remove('enlarge'), animationSpeed);
+function checkGameStatus() {
+  let hasSpace = false;
+  let canFuse = false;
+  for (let i = 0; i < boardSize; i++) {
+    for (let j = 0; j < boardSize; j++) {
+      const square = board[i][j];
+      if (square !== null) {
+        const val = parseInt(square.innerText);
+        if (val === goal) return WON;
+        else if (
+          hasSpace ||
+          canFuse ||
+          canFuseSquares(square, i - 1, j) ||
+          canFuseSquares(square, i + 1, j) ||
+          canFuseSquares(square, i, j - 1) ||
+          canFuseSquares(square, i, j + 1)
+        ) {
+          canFuse = true;
+        }
+      } else hasSpace = true;
+    }
+  }
+
+  return hasSpace || canFuse ? CONTINUE : LOST;
 }
 
 document.addEventListener('keydown', (e) => {
+  e.preventDefault(); // do not scroll window
   if (!flag) return;
   flag = false;
   setTimeout(() => (flag = true), animationSpeed);
@@ -175,7 +204,11 @@ document.addEventListener('keydown', (e) => {
       spawnRandomSquare();
   }
 
-  if (moved) spawnRandomSquare();
+  if (moved) {
+    spawnRandomSquare();
+    gameStatus = checkGameStatus();
+    if (gameStatus === WON || gameStatus === LOST) showEndGame();
+  }
 });
 
 function moveUp() {
@@ -330,6 +363,20 @@ function moveRight() {
   return moved;
 }
 
-gameHeaderEl.addEventListener('click', restartGame);
+function updateScore(val = 0) {
+  score += val;
+  scoreEl.innerText = score;
+  if (bestScore < score) {
+    bestScore = score;
+    bestScoreEl.innerText = bestScore;
+  }
+}
+
+resetBtn.addEventListener('click', restartGame);
+closeBtn.addEventListener('click', () => popupEl.classList.add('hide'));
+
+function log(n, base) {
+  return Math.round(Math.log(n) / Math.log(base));
+}
 
 initializeGame();
