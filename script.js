@@ -194,21 +194,20 @@ document.addEventListener('keydown', (e) => {
   let moved = false;
   switch (e.key) {
     case UP:
+    case 'w':
       moved = moveUp();
       break;
     case RIGHT:
+    case 'd':
       moved = moveRight();
       break;
     case DOWN:
+    case 's':
       moved = moveDown();
       break;
     case LEFT:
+    case 'a':
       moved = moveLeft();
-      break;
-    case ' ':
-      // spawnRandomSquare();
-      // saveGame();
-      loadGame();
       break;
   }
 
